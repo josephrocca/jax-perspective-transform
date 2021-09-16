@@ -1,5 +1,5 @@
 # jax-perspective-transform
-Image perspective transform hastily ported from Kornia (Pytorch) to JAX/Numpy. Could be buggy. Most of the docstrings and comments in the code should be mostly ignored because they're based on the old torch code. The relevant function is `warp_perspective`. [It's docstring](https://github.com/josephrocca/jax-perspective-transform/blob/main/module.py#L8) should be correct regarding the available options/parameters.
+Image perspective transform port/copypasta from Kornia (Pytorch) to JAX/Numpy. Could be buggy. Most of the docstrings and comments in the code should be mostly ignored because they're based on the old torch code. The main function is `warp_perspective`. [It's docstring](https://github.com/josephrocca/jax-perspective-transform/blob/main/module.py#L8) should be correct regarding the available options/parameters.
 
 ## Example
 ```python
