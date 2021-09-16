@@ -45,6 +45,7 @@ Image.fromarray(onp.array(img_warped)).show()
 ## Random Transform Example
 E.g. for image augmentation:
 ```python
+import jpt
 import time
 import PIL.Image as Image
 import numpy as onp
