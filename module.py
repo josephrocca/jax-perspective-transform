@@ -1,14 +1,14 @@
+# Mostly a copy-paste from: https://github.com/kornia/kornia/blob/6d839c8290b67dabfad9c1ffdc7e428c6030a499/kornia/geometry/transform/imgwarp.py#L34
+
 import jax
 import jax.numpy as np
 import jax.scipy as scipy
 
-# From:
-# https://github.com/kornia/kornia/blob/6d839c8290b67dabfad9c1ffdc7e428c6030a499/kornia/geometry/transform/imgwarp.py#L34
-# https://kornia-tutorials.readthedocs.io/en/latest/warp_perspective.html
+
 def warp_perspective(
     src: np.ndarray,
     M: np.ndarray,
-    dsize: Tuple[int, int],
+    dsize,
     interp_mode = 1,
     padding_mode = 'constant',
     cval = (0, 0, 0),
@@ -73,89 +73,6 @@ def warp_perspective(
     out = np.array([r.reshape(xs.shape), g.reshape(xs.shape), b.reshape(xs.shape)])
     out = np.array([out]) # add batch dim back
     return out[0]
-
-  
-def create_meshgrid(
-    height: int,
-    width: int,
-    normalized_coordinates: bool = True,
-    dtype: np.dtype = np.float32,
-) -> np.ndarray:
-    """Generate a coordinate grid for an image.
-    When the flag ``normalized_coordinates`` is set to True, the grid is
-    normalized to be in the range :math:`[-1,1]` to be consistent with the pytorch
-    function :py:func:`torch.nn.functional.grid_sample`.
-    Args:
-        height: the image height (rows).
-        width: the image width (cols).
-        normalized_coordinates: whether to normalize
-          coordinates in the range :math:`[-1,1]` in order to be consistent with the
-          PyTorch function :py:func:`torch.nn.functional.grid_sample`.
-        device: the device on which the grid will be generated.
-        dtype: the data type of the generated grid.
-    Return:
-        grid tensor with shape :math:`(1, H, W, 2)`.
-    Example:
-        >>> create_meshgrid(2, 2)
-        tensor([[[[-1., -1.],
-                  [ 1., -1.]],
-        <BLANKLINE>
-                 [[-1.,  1.],
-                  [ 1.,  1.]]]])
-        >>> create_meshgrid(2, 2, normalized_coordinates=False)
-        tensor([[[[0., 0.],
-                  [1., 0.]],
-        <BLANKLINE>
-                 [[0., 1.],
-                  [1., 1.]]]])
-    """
-    xs = np.linspace(0, width - 1, width, dtype=dtype)
-    ys = np.linspace(0, height - 1, height, dtype=dtype)
-    # Fix TracerWarning
-    # Note: normalize_pixel_coordinates still gots TracerWarning since new width and height
-    #       tensors will be generated.
-    # Below is the code using normalize_pixel_coordinates:
-    # base_grid: torch.Tensor = torch.stack(torch.meshgrid([xs, ys]), dim=2)
-    # if normalized_coordinates:
-    #     base_grid = K.geometry.normalize_pixel_coordinates(base_grid, height, width)
-    # return torch.unsqueeze(base_grid.transpose(0, 1), dim=0)
-    if normalized_coordinates:
-        xs = (xs / (width - 1) - 0.5) * 2
-        ys = (ys / (height - 1) - 0.5) * 2
-    # generate grid by stacking coordinates
-    base_grid = np.meshgrid(xs, ys)
-    base_grid = np.stack(base_grid)
-#     base_grid = base_grid.transpose(1, 2)  # 2xHxW
-    return np.expand_dims(base_grid, axis=0).transpose(0, 2, 3, 1)  # 1xHxWx2
-
-  
-def _torch_inverse_cast(input: np.ndarray) -> np.ndarray:
-    """Helper function to make torch.inverse work with other than fp32/64.
-    The function torch.inverse is only implemented for fp32/64 which makes impossible to be used by fp16 or others. What
-    this function does, is cast input data type to fp32, apply torch.inverse, and cast back to the input dtype.
-    """
-    if not isinstance(input, np.ndarray):
-        raise AssertionError(f"Input must be np.ndarray. Got: {type(input)}.")
-    dtype: np.dtype = input.dtype
-    if dtype not in (np.float32, np.float64):
-        dtype = np.float32
-    return np.linalg.inv(input.astype(dtype)).astype(input.dtype)
-
-def _torch_solve_cast(input: np.ndarray, A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Helper function to make torch.solve work with other than fp32/64.
-    The function torch.solve is only implemented for fp32/64 which makes impossible to be used by fp16 or others. What
-    this function does, is cast input data type to fp32, apply torch.svd, and cast back to the input dtype.
-    """
-    if not isinstance(input, np.ndarray):
-        raise AssertionError(f"Input must be np.ndarray. Got: {type(input)}.")
-    dtype: np.dtype = input.dtype
-    if dtype not in (np.float32, np.float64):
-        dtype = np.float32
-    
-#     out = solve(A.to(dtype), input.to(dtype))
-    out = np.linalg.solve(A.astype(dtype), input.astype(dtype))
-
-    return (out.astype(input.dtype), out)
 
 
 def get_perspective_transform(src, dst):
@@ -256,13 +173,97 @@ def _build_perspective_param(p: np.ndarray, q: np.ndarray, axis: str) -> np.ndar
         )
 
     raise NotImplementedError(f"perspective params for axis `{axis}` is not implemented.")
+
+
+
+def _torch_inverse_cast(input: np.ndarray) -> np.ndarray:
+    """Helper function to make torch.inverse work with other than fp32/64.
+    The function torch.inverse is only implemented for fp32/64 which makes impossible to be used by fp16 or others. What
+    this function does, is cast input data type to fp32, apply torch.inverse, and cast back to the input dtype.
+    """
+    if not isinstance(input, np.ndarray):
+        raise AssertionError(f"Input must be np.ndarray. Got: {type(input)}.")
+    dtype: np.dtype = input.dtype
+    if dtype not in (np.float32, np.float64):
+        dtype = np.float32
+    return np.linalg.inv(input.astype(dtype)).astype(input.dtype)
+
+def _torch_solve_cast(input: np.ndarray, A: np.ndarray):
+    """Helper function to make torch.solve work with other than fp32/64.
+    The function torch.solve is only implemented for fp32/64 which makes impossible to be used by fp16 or others. What
+    this function does, is cast input data type to fp32, apply torch.svd, and cast back to the input dtype.
+    """
+    if not isinstance(input, np.ndarray):
+        raise AssertionError(f"Input must be np.ndarray. Got: {type(input)}.")
+    dtype: np.dtype = input.dtype
+    if dtype not in (np.float32, np.float64):
+        dtype = np.float32
     
-    
+#     out = solve(A.to(dtype), input.to(dtype))
+    out = np.linalg.solve(A.astype(dtype), input.astype(dtype))
+
+    return (out.astype(input.dtype), out)
+
+def create_meshgrid(
+    height: int,
+    width: int,
+    normalized_coordinates: bool = True,
+    dtype: np.dtype = np.float32,
+) -> np.ndarray:
+    """Generate a coordinate grid for an image.
+    When the flag ``normalized_coordinates`` is set to True, the grid is
+    normalized to be in the range :math:`[-1,1]` to be consistent with the pytorch
+    function :py:func:`torch.nn.functional.grid_sample`.
+    Args:
+        height: the image height (rows).
+        width: the image width (cols).
+        normalized_coordinates: whether to normalize
+          coordinates in the range :math:`[-1,1]` in order to be consistent with the
+          PyTorch function :py:func:`torch.nn.functional.grid_sample`.
+        device: the device on which the grid will be generated.
+        dtype: the data type of the generated grid.
+    Return:
+        grid tensor with shape :math:`(1, H, W, 2)`.
+    Example:
+        >>> create_meshgrid(2, 2)
+        tensor([[[[-1., -1.],
+                  [ 1., -1.]],
+        <BLANKLINE>
+                 [[-1.,  1.],
+                  [ 1.,  1.]]]])
+        >>> create_meshgrid(2, 2, normalized_coordinates=False)
+        tensor([[[[0., 0.],
+                  [1., 0.]],
+        <BLANKLINE>
+                 [[0., 1.],
+                  [1., 1.]]]])
+    """
+    xs = np.linspace(0, width - 1, width, dtype=dtype)
+    ys = np.linspace(0, height - 1, height, dtype=dtype)
+    # Fix TracerWarning
+    # Note: normalize_pixel_coordinates still gots TracerWarning since new width and height
+    #       tensors will be generated.
+    # Below is the code using normalize_pixel_coordinates:
+    # base_grid: torch.Tensor = torch.stack(torch.meshgrid([xs, ys]), dim=2)
+    # if normalized_coordinates:
+    #     base_grid = K.geometry.normalize_pixel_coordinates(base_grid, height, width)
+    # return torch.unsqueeze(base_grid.transpose(0, 1), dim=0)
+    if normalized_coordinates:
+        xs = (xs / (width - 1) - 0.5) * 2
+        ys = (ys / (height - 1) - 0.5) * 2
+    # generate grid by stacking coordinates
+    base_grid = np.meshgrid(xs, ys)
+    base_grid = np.stack(base_grid)
+#     base_grid = base_grid.transpose(1, 2)  # 2xHxW
+    return np.expand_dims(base_grid, axis=0).transpose(0, 2, 3, 1)  # 1xHxWx2
+
+
+
 def normal_transform_pixel(
     height: int,
     width: int,
     eps: float = 1e-14,
-    dtype: Optional[np.dtype] = None,
+    dtype = None,
 ) -> np.ndarray:
     r"""Compute the normalization matrix from image size in pixels to [-1, 1].
     Args:
@@ -287,10 +288,8 @@ def normal_transform_pixel(
 
     return np.expand_dims(tr_mat, axis=0)  # 1x3x3
 
-  
-  
 def normalize_homography(
-    dst_pix_trans_src_pix: np.ndarray, dsize_src: Tuple[int, int], dsize_dst: Tuple[int, int]
+    dst_pix_trans_src_pix: np.ndarray, dsize_src, dsize_dst
 ) -> np.ndarray:
     r"""Normalize a given homography in pixels to [-1, 1].
     Args:
@@ -320,8 +319,7 @@ def normalize_homography(
     # compute chain transformations
     dst_norm_trans_src_norm: np.ndarray = dst_norm_trans_dst_pix @ (dst_pix_trans_src_pix @ src_pix_trans_src_norm)
     return dst_norm_trans_src_norm
-  
-  
+
 def convert_points_to_homogeneous(points: np.ndarray) -> np.ndarray:
     r"""Function that converts points from Euclidean to homogeneous space.
     Args:
