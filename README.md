@@ -1,9 +1,13 @@
 # JAX Perspective Transform / Warp
-Image perspective transform port/copypasta from Kornia (Pytorch) to JAX/Numpy. Could be buggy. Most of the docstrings and comments in the code should be mostly ignored because they're based on the old torch code. The main function is `warp_perspective`. [It's docstring](https://github.com/josephrocca/jax-perspective-transform/blob/main/module.py#L8) should be correct regarding the available options/parameters.
+Image perspective transform port/copypasta from Kornia (Pytorch) to JAX/Numpy. Could be buggy. Most of the docstrings and comments in the code should be mostly ignored because they're based on the old torch code. The main/relevant function is `warp_perspective`. [It's docstring](https://github.com/josephrocca/jax-perspective-transform/blob/main/module.py#L8) should be correct regarding the available options/parameters. You'll also need to use `get_perspective_transform`, as shown in the examples below.
 
 ## Example
+```bash
+pip install git+https://github.com/josephrocca/jax-perspective-transform.git
+```
 ```python
 # Example based on: https://kornia-tutorials.readthedocs.io/en/latest/warp_perspective.html
+import jpt
 import PIL.Image as Image
 
 # the source points are the region to crop corners ([x0,y0], [x1,y1], etc. clockwise starting from top left)
@@ -22,10 +26,10 @@ img = img.transpose(2, 0, 1) # CxHxW / np.uint8
 print(img.shape)
 
 # compute perspective transform
-M = get_perspective_transform(points_src, points_dst)
+M = jpt.get_perspective_transform(points_src, points_dst)
 
 # warp the original image by the found transform
-img_warped = warp_perspective(img.astype('float32'), M, dsize=(dst_h, dst_w))
+img_warped = jpt.warp_perspective(img.astype('float32'), M, dsize=(dst_h, dst_w))
 print(img_warped.shape)
 
 # convert back to HxWxC
@@ -70,10 +74,10 @@ points_dst = np.array([
 ])
 
 # compute perspective transform
-M = get_perspective_transform(points_src, points_dst)
+M = jpt.get_perspective_transform(points_src, points_dst)
 
 # warp the original image by the found transform
-img_warped = warp_perspective(img.astype('float32'), M, dsize=(dst_h, dst_w))
+img_warped = jpt.warp_perspective(img.astype('float32'), M, dsize=(dst_h, dst_w))
 print(img_warped.shape)
 
 # convert back to HxWxC
