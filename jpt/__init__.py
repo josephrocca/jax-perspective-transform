@@ -1,4 +1,6 @@
 # Mostly a copy-paste from: https://github.com/kornia/kornia/blob/6d839c8290b67dabfad9c1ffdc7e428c6030a499/kornia/geometry/transform/imgwarp.py#L34
+# Probably buggy. 90% of the code here is either kinda useless (error checking where the parent function already checked) or docstrings which aren't
+# correct since they're based on the Pytorch Kornia code ¯\_(ツ)_/¯
 
 import jax
 import jax.numpy as np
@@ -391,7 +393,7 @@ def transform_points(trans_01: np.ndarray, points_1: np.ndarray) -> np.ndarray:
         raise ValueError("Last input dimensions must differ by one unit")
 
     # We reshape to BxNxD in case we get more dimensions, e.g., MxBxNxD
-    shape_inp = list(points_1.shape)
+#     shape_inp = list(points_1.shape)
     points_1 = points_1.reshape((-1, points_1.shape[-2], points_1.shape[-1]))
     trans_01 = trans_01.reshape((-1, trans_01.shape[-2], trans_01.shape[-1]))
     # We expand trans_01 to match the dimensions needed for bmm
@@ -403,11 +405,12 @@ def transform_points(trans_01: np.ndarray, points_1: np.ndarray) -> np.ndarray:
     # to euclidean
     points_0 = convert_points_from_homogeneous(points_0_h)  # BxNxD
     # reshape to the input shape
-    if hasattr(np, 'DeviceArray'): # detect jax
-        shape_inp = jax.ops.index_update(shape_inp, jax.ops.index[-2], points_0.shape[-2])
-        shape_inp = jax.ops.index_update(shape_inp, jax.ops.index[-1], points_0.shape[-1])
-    else:
-        shape_inp[-2] = points_0.shape[-2]
-        shape_inp[-1] = points_0.shape[-1]
-    points_0 = points_0.reshape(shape_inp)
+#     if hasattr(np, 'DeviceArray'): # detect jax
+#         shape_inp = jax.ops.index_update(shape_inp, jax.ops.index[-2], points_0.shape[-2])
+#         shape_inp = jax.ops.index_update(shape_inp, jax.ops.index[-1], points_0.shape[-1])
+#     else:
+#         shape_inp[-2] = points_0.shape[-2]
+#         shape_inp[-1] = points_0.shape[-1]
+#     points_0 = points_0.reshape(shape_inp)
+    points_0 = np.array([points_0])
     return points_0
